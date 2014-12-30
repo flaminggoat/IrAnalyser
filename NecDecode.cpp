@@ -1,15 +1,16 @@
 //NecDecode
-//
-//
-//
 //Theo Hussey 2014
-/*
+
+#include <avr/io.h>
+#include <avr/interrupt.h>
+
 #include "NecDecode.h"
 
-uint8_t necByteDecode(uint8_t * byte) {
+static uint8_t necByteDecode(uint8_t * byte) {
 	uint16_t time;
 	*byte = 0;
-	for(int i=8; i>0; i--) {
+	uint8_t i;
+	for(i=8; i>0; i--) {
 		*byte >>= 1;
 		
 		while(!(PIND & _BV(TSOP38238)));
@@ -80,4 +81,4 @@ uint8_t necDecode(necPacket * packet) {
 	packet->data = byte1;
 
 	return 0;
-}*/
+}

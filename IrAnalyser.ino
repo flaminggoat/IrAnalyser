@@ -51,13 +51,13 @@ void loop() {
 		err = necDecode(&p);
 		if(err > 1) {
 			if(debug) {
-				offset += sprintf(buffer + offset, "Error = %d\n", err);
+				offset += sprintf(buffer + offset, "Error = %d\n\r", err);
 				line ++;
 			}
 			//Serial.print("Error = ");
 			//Serial.println(err); 
 		} else if(err == 1) {
-			offset += sprintf(buffer + offset, "Repeat\n");
+			offset += sprintf(buffer + offset, "Repeat\n\r");
 			line ++;
 			//Serial.println("Repeat"); 
 		} else {

@@ -5,92 +5,120 @@
 #include <SPI.h>
 #include <TFT_ILI9163C.h>
 #include <Adafruit_GFX.h>
-
-#include "NecDecode.h"
+#include <IRremote.h>
 
 TFT_ILI9163C display = TFT_ILI9163C(__CS, __DC, __RST);
+IRrecv irrecv(RECV_PIN);
+decode_results results;
 
 void setup() {
-  //IO
-  //pinMode(RED_LED, OUTPUT);
-  pinMode(TSOP38238, INPUT);
   Serial.begin(9600);
   
+  display.setBitrate(8000000);
   display.begin();
-  display.setRotation(2); //Dosent seem to work properly the other way up
+  display.setRotation(2); //Doesn't seem to work properly the other way up
   display.clearScreen();
   display.setCursor(0,0);
-  display.setTextColor(WHITE);  
+  display.setTextColor(RED);  
   display.setTextSize(1);
   display.println("IR Analyser");
-  
-  //Timer 1 setup
-  // disable global interrupts
-  cli();
-  //Output compare off, PWM off
-  TCCR1A = 0;
-  //divide clock by 256
-  TCCR1B = 0x04;
-  // no interrupts
-  TIMSK1 = 0;
-  // enable global interrupts:
-  sei();
+
+  irrecv.enableIRIn(); // Start the receiver
 }
 
+void printProtocol(int8_t protocol) {
+	switch(results.decode_type) {
+		case NEC:
+			display.setTextColor(BLUE);
+			display.println("NEC");
+			break;
+		case SONY:
+			display.setTextColor(GREEN);
+			display.println("SONY");
+			break;
+		case RC5:
+			display.setTextColor(CYAN);
+			display.println("RC5");
+			break;
+		case RC6:
+			display.setTextColor(MAGENTA);
+			display.println("RC6");
+			break;
+		case DISH:
+			display.setTextColor(YELLOW);
+			display.println("DISH");
+			break;
+		case SHARP:
+			display.setTextColor(BLUE);
+			display.println("SHARP");
+			break;
+		case PANASONIC:
+			display.setTextColor(GREEN);
+			display.println("PANASONIC");
+			break;
+		case JVC:
+			display.setTextColor(CYAN);
+			display.println("JVC");
+			break;
+		case SANYO:
+			display.setTextColor(MAGENTA);
+			display.println("SANYO");
+			break;
+		case MITSUBISHI:
+			display.setTextColor(YELLOW);
+			display.println("MITSUBISHI");
+			break;
+		case SAMSUNG:
+			display.setTextColor(BLUE);
+			display.println("SAMSUNG");
+			break;
+		case LG:
+			display.setTextColor(GREEN);
+			display.println("LG");
+			break;
+		default:
+			display.setTextColor(RED);
+			display.println("UNKNOWN");
+			break;
+	}
+
+	display.setTextColor(WHITE);
+}
 
 void loop() {
-	static const uint8_t debug =0;
-	static uint8_t line = 1;
-	static char buffer[40];
-	static uint16_t offset = 0;
-	
-	if(!digitalRead(TSOP38238))
-	{	
-		necPacket p;
-		uint8_t err;
-		err = necDecode(&p);
-		if(err > 1) {
-			if(debug) {
-				offset += sprintf(buffer + offset, "Error = %d\n\r", err);
-				line ++;
-			}
-			//Serial.print("Error = ");
-			//Serial.println(err); 
-		} else if(err == 1) {
-			offset += sprintf(buffer + offset, "Repeat\n\r");
-			line ++;
-			//Serial.println("Repeat"); 
-		} else {
-			offset += sprintf(buffer + offset, "Device = 0x%x\n\rData   = 0x%x\n\r", p.device, p.data);
-			line += 2;
-			
-			//display.setTextColor(YELLOW);
-			//display.print("Device = 0x");
-			//display.println(p.device, HEX);
-			//display.setTextColor(GREEN);
-			//display.print("Data   = 0x");
-			//display.println(p.data, HEX);
-			//line += 2;
-			
-			//Serial.print("Device = 0x");
-			//Serial.println(p.device, HEX);
-			//Serial.print("Data   = 0x");
-			//Serial.println(p.data, HEX);
-		}
-		//delay(100);
-	}
-	
-	if(*buffer) {
-		if(line > 16) {
-			line = 0;
+	static int8_t debug = 0;
+	static int8_t protocol = -1;
+
+	static int8_t line = 0;
+
+	if (irrecv.decode(&results)) {
+		if(line > 15) {
+			//Clear screen if cursor has gone off the bottom
 			display.clearScreen();
 			display.setCursor(0,0);
+			printProtocol(protocol);
+			line = 1;
 		}
-		display.print(buffer);
-		Serial.print(buffer);
-		*buffer = 0;
-		offset = 0;
+
+		if(protocol != results.decode_type) {
+			//Protocol has changed since the last signal
+			protocol = results.decode_type;
+			printProtocol(protocol);
+			line++;
+		}
+
+		if(protocol != UNKNOWN) {
+			display.println(results.value, HEX);
+			line++;
+			Serial.println(results.value, HEX);
+	    } else {
+	    	//TODO: Display unknown protocols in a more informative manner
+	    	for(int i=0; i<results.rawlen; i++)
+	    		display.print(results.rawbuf[i],HEX);
+	    	display.print("\n");
+	    	line++;
+	    }
+
+	    irrecv.resume(); // Receive the next value
 	}
-	
-	
 }

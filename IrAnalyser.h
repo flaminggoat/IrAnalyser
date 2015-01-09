@@ -8,6 +8,7 @@
 
 //General connections
 #define RED_LED 13
+#define RECV_PIN 6
 
 //TFT connections
 #define __CS 5
